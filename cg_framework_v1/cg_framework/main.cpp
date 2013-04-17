@@ -7,11 +7,10 @@
 	Computer Graphics Course - FCUP (LCC, MCC)
 	Ver?nica Orvalho, Bruno Oliveira, 2012
 	
-	Step 2: 
-	GLEW initialization;
+	Step 3: 
+	Geometry initialization.
+	in this step, the appropriate Vetex Array Objects (VAO) and Vertex Buffer Objects (VBO) are created and initialized.
 	
-	GLEW is library that allows an easy access to OpenGL extensions. Microsoft Windows only exposes OpenGL 1.1. The remaining functions must be obtained from the driver itself, and GLEW does that automatically.
-
 	new code is marker as !![NEW]!!
 	
 	output: blank screen
@@ -19,6 +18,30 @@
 
 
 bool inited = false; //Have we done initialization?
+
+/*
+	!![NEW]!!
+	
+	array of vertices that hold the geometry information. in this case, three vertice, forming a triangle
+	please bear in mind that each vertice is a triple: (x, y, z)
+	
+	vao: will hold the VAO identifier (usually one per object)
+	geomId: will hold the VBO identifier (one per attribute: position, normal, etc.)
+*/
+
+GLfloat vertices[] = 
+{
+	-0.5f, -0.5f, 0.0f,
+	0.5f, -0.5f, 0.0f,
+	0.0f, 0.5f, 0.0f
+};
+
+GLuint vao;
+GLuint geomId;
+
+/*
+	end !![NEW]!!
+*/
 
 
 /* 
@@ -48,6 +71,42 @@ void dumpInfo(void)
    checkError ("dumpInfo");
 }
 
+
+/*
+	!![NEW]!!
+	
+	Geometry initialization routine.
+	
+	1. Generate a VAO that holds that matchs the *ATTRIBUTES* (vertex position, normal, etc) to vertex buffer objects (VBO)(which hold the actual information)
+	2. Active the VAO
+	3. Active attribute 0 (first attribute in the vertex shader)
+	4. Generate the VBO
+	5. Activate the VBO
+	6. Assign the geometry (the vertices variable previously defined) to the VBO (copying it to the graphics card's memory)
+	7. Assign this VBO to the attribute
+	8. Repeat steps 3-7 for remaining attributes
+	9. Reset OpenGL's state
+*/
+	
+void initGeometry()
+{
+	glGenVertexArrays(1, &vao); //1.
+	glBindVertexArray(vao); //2.
+	glEnableVertexAttribArray(0); //3.
+	glGenBuffers(1, &geomId); //4.
+	glBindBuffer(GL_ARRAY_BUFFER, geomId); //5.
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); //6. GL_ARRAY_BUFFER: the type of buffer; sizeof(vertices): the memory size; vertices: the pointer to data; GL_STATIC_DRAW: data will remain on the graphics card's memory and will not be changed
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0); //7. 0: the *ATTRIBUTE* number; 3: the number of coordinates; GL_FLOAT: the type of data; GL_FALSE: is the data normalized? (usually it isn't), 0: stride (forget for now); 0: data position (forget for now)
+
+	checkError("initBuffer");
+	glBindBuffer(GL_ARRAY_BUFFER, 0); //9.
+	glBindVertexArray(0); //9.
+}
+
+/*
+	end !![NEW]!!
+*/
+
 /*
 	Initialization function
 	
@@ -58,9 +117,6 @@ void init(void)
 {
 	
 	/*
-	
-	!![NEW]!!
-	
 	GLEW initialization.
 	activate GLEW experimental features to have access to the most recent OpenGL, and then call glewInit.
 	it is important to know that this must be done only when a OpenGL context already exists, meaning, in this case, glutCreateWindow has already been called.
@@ -79,11 +135,16 @@ void init(void)
 		}
 	}
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
+		
 	/*
-	end !![NEW]!!
+		!![NEW]!!
+		call initGeometry
+	*/	
+	initGeometry();
+	/*
+		end !![NEW]!!
 	*/
-	
+
 	
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //Defines the clear color, i.e., the color used to wipe the display
 	checkError("init");
