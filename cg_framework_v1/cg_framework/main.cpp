@@ -7,21 +7,18 @@
 	Computer Graphics Course - FCUP (LCC, MCC)
 	Ver?nica Orvalho, Bruno Oliveira, 2012
 	
-	Step 3: 
-	Geometry initialization.
-	in this step, the appropriate Vetex Array Objects (VAO) and Vertex Buffer Objects (VBO) are created and initialized.
+	Step 6:
+	Draw the triangle (FINALLY!!)
 	
 	new code is marker as !![NEW]!!
 	
-	output: blank screen
+	output: a white triangle
 */
 
 
 bool inited = false; //Have we done initialization?
 
 /*
-	!![NEW]!!
-	
 	array of vertices that hold the geometry information. in this case, three vertice, forming a triangle
 	please bear in mind that each vertice is a triple: (x, y, z)
 	
@@ -40,10 +37,18 @@ GLuint vao;
 GLuint geomId;
 
 /*
-	end !![NEW]!!
+	variables to hold the shaders related identifiers
+
+	vertexShaderId: will hold the vertex shader identifier
+	fragShaderId: will hold the fragment shader identifier
+	programId: will hold the program identifier
 */
-
-
+	
+GLuint vertexShaderId;
+GLuint fragShaderId;
+GLuint programId;
+	
+	
 /* 
 	Error checking function:
 
@@ -71,10 +76,124 @@ void dumpInfo(void)
    checkError ("dumpInfo");
 }
 
+/*
+	creates the program
+	1. Generate the program's id
+	2. Attach shader
+	3. Repeat 2. until all shaders attached
+	4. Link the program
+	5. Check for errors
+	
+*/
+
+void createAndCompileProgram(GLuint vertexId, GLuint fragId, GLuint *programId)
+{
+	*programId = glCreateProgram(); //1.
+	glAttachShader(*programId, vertexId); //2. Attach the shader vertexId to the program programId
+	glAttachShader(*programId, fragId); //2. Attach the shader fragId to the program programId
+
+	glLinkProgram (*programId);//4.
+
+	//5. Until the end of the if clause, is to check for COMPILE errors, and only for these. *not* related with the checkError procedure
+	GLint status;
+	glGetProgramiv (*programId, GL_LINK_STATUS, &status);
+	if (status == GL_FALSE) {
+		GLint infoLogLength;
+		char *infoLog;
+		glGetProgramiv (*programId, GL_INFO_LOG_LENGTH, &infoLogLength);
+		infoLog = new char[infoLogLength];
+		glGetProgramInfoLog (*programId, infoLogLength, NULL, infoLog);
+		fprintf (stderr, "link log: %s\n", infoLog);
+		delete infoLog;
+	}
+	checkError ("createAndCompileProgram");
+}
 
 /*
-	!![NEW]!!
+	creates the shader in OpenGL and compiles it.
 	
+	1. Generate the shader id
+	2. Set the shader's source
+	3. Compile the shader
+	4. Check for errors
+*/
+
+void createAndCompileShader(GLuint* id, GLenum type, GLsizei count, const char **shaderSource)
+{
+	*id = glCreateShader(type); //1. create the shader with type. (GL_VERTEX_SHADER or GL_FRAGMENT_SHADER. others will follow in the future)
+
+	glShaderSource(*id, count, shaderSource, NULL); //2. the shader's source. *id: shader's id; count: memory size of the contents; shaderSource: shader contents; NULL ;)
+	
+	glCompileShader(*id); //3.
+
+	//4. Until the end of the if clause, is to check for COMPILE errors, and only for these. *not* related with the checkError procedure
+	GLint status;
+	glGetShaderiv (*id, GL_COMPILE_STATUS, &status);
+	if (status == GL_FALSE) {
+		GLint infoLogLength;
+		char *infoLog;
+		glGetShaderiv (*id, GL_INFO_LOG_LENGTH, &infoLogLength);
+		infoLog = new char[infoLogLength];
+		glGetShaderInfoLog (*id, infoLogLength, NULL, infoLog);
+		fprintf (stderr, "compile log: %s\n", infoLog);
+		delete(infoLog);
+	}
+	
+	checkError ("createAndCompileShader");
+
+}
+/*
+	loads the shader in file.
+	1. load the file from disk into a memory block
+	2. create the shader
+	
+*/
+
+void loadShader (char *file, GLuint *id, GLenum type) 
+{
+	//Open e load  shader file
+	FILE* f = fopen(file, "r");
+	if (!f) {
+		fprintf(stderr, "Unable to open shader file: %s", file);
+		return;
+	}
+
+	fseek(f, 0, SEEK_END);
+
+	int fileSize = ftell(f);
+	rewind(f);
+
+	char *fileContents = new char[fileSize];
+	memset(fileContents, 0, fileSize);
+	fread(fileContents, sizeof(char), fileSize, f);
+	//up until here is to load the contents of the file
+
+	const char* t = fileContents;
+	
+	//2. create the shader. arguments (future) shader id, type of shader, memory size of the file contents, file contents
+	createAndCompileShader(id, type, sizeof(fileContents)/sizeof(char*), &t);
+
+	//cleanup
+	fclose(f);
+	delete fileContents;
+}
+/*
+	loads two shader files, one vertex shader and one fragment shader, and creates the program.
+	the arguments are the path to the files, including file name.
+*/
+
+void loadShaderProgram(char* vertexFile, char* fragmentFile)
+{
+	//load each shader seperately. arguments: the file, (future) shader id, shader type
+	
+	loadShader(vertexFile, &vertexShaderId, GL_VERTEX_SHADER); 
+	loadShader(fragmentFile, &fragShaderId, GL_FRAGMENT_SHADER);
+	
+	//one the shaders loaded, create the program with the two shaders. arguments: vertex shader id, fragment shader id, (future) program id
+	createAndCompileProgram(vertexShaderId, fragShaderId, &programId);
+}
+
+/*
 	Geometry initialization routine.
 	
 	1. Generate a VAO that holds that matchs the *ATTRIBUTES* (vertex position, normal, etc) to vertex buffer objects (VBO)(which hold the actual information)
@@ -104,10 +223,6 @@ void initGeometry()
 }
 
 /*
-	end !![NEW]!!
-*/
-
-/*
 	Initialization function
 	
 	All initialization procedures should be performed here.
@@ -135,16 +250,9 @@ void init(void)
 		}
 	}
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-		
-	/*
-		!![NEW]!!
-		call initGeometry
-	*/	
+	
+	loadShaderProgram("../shaders/vertex_shader.vs", "../shaders/frag_shader.fs");
 	initGeometry();
-	/*
-		end !![NEW]!!
-	*/
-
 	
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //Defines the clear color, i.e., the color used to wipe the display
 	checkError("init");
@@ -169,7 +277,21 @@ void display(void)
 	
 	glClear(GL_COLOR_BUFFER_BIT); //Clears the display with the defined clear color
 	
-
+	/*
+		!![NEW]!!
+		DRAW!! :)
+		1. Activate the program
+		2. Activate the VAO
+		3. Draw!
+		4. Clean
+	*/
+	
+	glUseProgram(programId); //1.
+	glBindVertexArray(vao); //2.
+	glDrawArrays(GL_TRIANGLES, 0, 3); //3.
+	glBindVertexArray(0); //4.
+	glUseProgram(0); //4.
+	
 	glFlush(); //Instructes OpenGL to finish all rendering operations
 	glutSwapBuffers(); //Swaps the display in a double buffering scenario. In double buffering, rendering is done in a offline buffer (not directly on the screen); this avoid flickering 
 	checkError ("display");
