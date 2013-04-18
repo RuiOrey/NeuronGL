@@ -14,12 +14,12 @@ out vec4 color_vf;
 
 uniform mat4 pMatrix;
 uniform mat4 vMatrix;
-//1. uniform mat4 mMatrix;
+uniform mat4 mMatrix;
 
 void main()
 {
 	color_vf = color;
-	gl_Position = pMatrix * vMatrix * vertex;
-	//2. gl_Position = pMatrix * vMatrix * mMatrix * vertex;
+	//gl_Position = pMatrix * vMatrix * vertex;
+	gl_Position = pMatrix * vMatrix * mMatrix * vertex;
 }
 
