@@ -12,14 +12,14 @@ layout (location=0) in vec4 vertex;
 layout (location=1) in vec4 color;
 out vec4 color_vf;
 
-//1.uniform mat4 pMatrix;
-//2.uniform mat4 vMatrix;
+uniform mat4 pMatrix;
+uniform mat4 vMatrix;
 
 void main()
 {
 	color_vf = color;
-	gl_Position = vertex;
-	//3.gl_Position = pMatrix * vertex;
-	//4.gl_Position = pMatrix * vMatrix * vertex;
+	//gl_Position = vertex;
+	//gl_Position = pMatrix * vertex;
+	gl_Position = pMatrix * vMatrix * vertex;
 }
 

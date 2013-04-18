@@ -9,13 +9,15 @@
 	Computer Graphics Course - FCUP (LCC, MCC)
 	Ver?nica Orvalho, Bruno Oliveira, 2012
 	
-	Step 7:
-	Draw a cube
-	Introduces depth buffer
-	
+	Step 10:
+	Manipulating the camera. 
+	How to manipulate the camera in a first person perspective.
+
+	A function to handle special keys is also introduced.
+
 	new code is marker as !![NEW]!!
 	
-	output: a fully coloured screen (the camera is to close to the cube)
+	output: a camera in first person controllable by the arrow keys
 */
 
 
@@ -27,12 +29,6 @@ bool inited = false; //Have we done initialization?
 	
 	vao: will hold the VAO identifier (usually one per object)
 	geomId: will hold the VBO identifier (one per attribute: position, normal, etc.)
-*/
-
-/* !![NEW]!!
-
-New geometry and per vertex color information
-
 */
 
 GLfloat vertices[] = 
@@ -127,12 +123,6 @@ GLfloat colors[] =
 
 };
 
-/* 
-
-end !![NEW]!!
-
-*/
-
 
 GLuint vao;
 GLuint geomId;
@@ -150,6 +140,36 @@ GLuint vertexShaderId;
 GLuint fragShaderId;
 GLuint programId;
 	
+
+/*
+	!![NEW]!!
+
+	Perspective and camera related variables.
+
+	perspectiveMatrix: perspective matrix. this is a GLM type, representing a 4x4 matrix
+	cameraMatrix: camera or view matrix.
+	cameraPos: camera initial position
+	cameraView: camera view direction
+	cameraUp: camera up vector
+	angle: initial viewing angle (-PI/2)
+	velocity: camera's rotation and moving velocity
+
+*/
+
+glm::mat4 perspectiveMatrix;
+glm::mat4 cameraMatrix;
+
+glm::vec3 cameraPos(0.0f, 0.0f, 5.0f);
+glm::vec3 cameraView(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp(0.0f, 1.0f, 0.0f);
+
+float angle = -1.57079633f;
+
+const float velocity = 0.25f;
+
+/*
+	end !![NEW]!!
+*/
 
 /* 
 	Error checking function:
@@ -363,14 +383,7 @@ void init(void)
 	initGeometry();
 	
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //Defines the clear color, i.e., the color used to wipe the display
-	
-	/* !![NEW]!!
-		Activates the depth buffer
-	*/
 	glEnable(GL_DEPTH_TEST);
-	/*
-		end !![NEW]!!
-	*/
 	checkError("init");
 }
 
@@ -391,27 +404,18 @@ void display(void)
 		inited = true;
 	}
 	
-	/* !![NEW]!!
-		adds the depth buffer to the clear flags
-	*/
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clears the display with the defined clear color
-	/*
-		end !![NEW]!!
-	*/
-	glUseProgram(programId); //1.
-	glBindVertexArray(vao); //2.
 	
-	/* !![NEW] !!
-	
-	The amount of points to draw
-	
-	*/
+	glUseProgram(programId);
+
+	GLuint loc = glGetUniformLocation(programId, "pMatrix");
+	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *)&perspectiveMatrix[0]);
+
+	loc = glGetUniformLocation(programId, "vMatrix");
+	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *)&cameraMatrix[0]);
+
+	glBindVertexArray(vao);
 	glDrawArrays(GL_TRIANGLES, 0, 36); //3.
-	/*
-	
-	end !![NEW]!!
-	
-	*/
 	glBindVertexArray(0); //4.
 	glUseProgram(0); //4.
 	
@@ -431,7 +435,13 @@ void reshape (int w, int h)
 {
    glViewport (0, 0, (GLsizei) w, (GLsizei) h);
 
-   float aspect = (float)w/(float)h;
+   /* 
+   This sets the perspective matrix. There's no need to compute this matrix at each frame. Only when the window changes size
+   */
+
+   float aspect = (float)w/(float)h; //aspect ratio.
+
+   perspectiveMatrix = glm::perspective(45.0f, aspect, 1.0f, 1000.0f); //field of view; aspect ratio; z near; z far;
 
    checkError ("reshape");
 }
@@ -448,6 +458,75 @@ void keyboard(unsigned char key, int x, int y)
 			exit(0);
 			break;
    }
+}
+
+
+/*
+	!![NEW]!!
+
+	[FREEGLUT]
+	Special keys handling function (for "normal" keys, use the previously defined function)
+
+	This function not only handles the special keys, but also controls the camera's position and rotation angle based on the input.	
+*/
+
+void keyboardSpecialKeys(int key, int x, int y)
+{
+	switch (key) {
+		case GLUT_KEY_LEFT:
+			angle -= velocity;
+			break;
+		case GLUT_KEY_RIGHT:
+			angle += velocity;
+			break;
+		case GLUT_KEY_UP:
+			cameraPos.x += cos(angle) * velocity;
+			cameraPos.z += sin(angle) * velocity;
+			break;
+		case GLUT_KEY_DOWN:
+			cameraPos.x -= cos(angle) * velocity;
+			cameraPos.z -= sin(angle) * velocity;
+			break;
+   }
+}
+
+/*
+	end !![NEW]!!
+*/
+
+/* 
+	Camera setup function.
+	This creates the camera or view matrix based on the position of the player and the camera type.
+	In this case, this we are going to create a first person camera.
+
+	note: the lookAt function from GLM works the same as the *old* gluLookAt function
+*/
+
+void setupCamera(void)
+{
+
+	//Define the view direction based on the camera's position
+	cameraView.x = cameraPos.x + cos(angle);
+	cameraView.y = cameraPos.y;
+	cameraView.z = cameraPos.z + sin(angle);
+
+
+	//Creates the view matrix based on the position, the view direction and the up vector
+	cameraMatrix = glm::lookAt(cameraPos,
+								cameraView,
+								cameraUp);
+}
+
+/* 
+This is a function to be issued on every cycle.
+
+It performs all that is needed for an interactive simulation.
+*/
+
+void mainLoop(void)
+{
+	setupCamera();
+	display();
 }
 
 int main(int argc, char** argv)
@@ -469,6 +548,18 @@ int main(int argc, char** argv)
 	glutDisplayFunc(display); 
 	glutReshapeFunc(reshape);
 	glutKeyboardFunc(keyboard);
+
+	/* !![NEW]!!
+		define the special keys function
+	*/
+	glutSpecialFunc(keyboardSpecialKeys);
+	/*
+		end !![NEW]!!
+	*/
+	/* 
+		glut idle function definition: this function is called on every tick
+	*/
+	glutIdleFunc(mainLoop);
 
 	checkError ("main");
 	glutMainLoop(); //starts processing
