@@ -41,6 +41,10 @@ GLuint geomId;
 GLuint normalsId;
 GLuint texUVId;
 
+GLuint vao2;
+GLuint geomId2;
+GLuint normalsId2;
+GLuint texUVId2;
 
 
 
@@ -91,8 +95,9 @@ GLfloat ambientComponent[] = {0.4f, 0.4f, 0.4f, 1.0f};
 GLfloat diffuseColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
 
-//OBJLoader object("../models/haywagon/haywagon_tris.obj");
-OBJLoader object("../models/cube.obj");
+//OBJLoader object2("../models/haywagon/haywagon_tris.obj");
+OBJLoader object("../models/textured_cube.obj");
+OBJLoader object2("../models/cube.obj");
 
 /* 
 Error checking function:
@@ -281,6 +286,37 @@ void initGeometry()
 	checkError("initBuffer");
 	glBindBuffer(GL_ARRAY_BUFFER, 0); //9.
 	glBindVertexArray(0); //9.
+
+
+	// TEST 
+
+	const float *vertices2 = object2.getVerticesArray();
+	const float *textureCoords2 = object2.getTextureCoordinatesArray();
+	const float *normals2 = object2.getNormalsArray();
+
+	glGenVertexArrays(1, &vao2); //1.
+	glBindVertexArray(vao2); //2.
+	glEnableVertexAttribArray(0); //3.
+	glGenBuffers(1, &geomId2); //4.
+	glBindBuffer(GL_ARRAY_BUFFER, geomId2); //5.
+	glBufferData(GL_ARRAY_BUFFER, object2.getNVertices() * 3 * sizeof(float), vertices2, GL_STATIC_DRAW); //6. GL_ARRAY_BUFFER: the type of buffer; sizeof(vertices): the memory size; vertices: the pointer to data; GL_STATIC_DRAW: data will remain on the graphics card's memory and will not be changed
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0); //7. 0: the *ATTRIBUTE* number; 3: the number of coordinates; GL_FLOAT: the type of data; GL_FALSE: is the data normalized? (usually it isn't), 0: stride (forget for now); 0: data position (forget for now)
+
+	glEnableVertexAttribArray(1);
+	glGenBuffers(1, &texUVId2);
+	glBindBuffer(GL_ARRAY_BUFFER, texUVId2);
+	glBufferData(GL_ARRAY_BUFFER, object2.getNVertices() * 2 * sizeof(float), textureCoords2, GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glEnableVertexAttribArray(2);
+	glGenBuffers(1, &normalsId2);
+	glBindBuffer(GL_ARRAY_BUFFER, normalsId2);
+	glBufferData(GL_ARRAY_BUFFER, object2.getNVertices() * 3 * sizeof(float), normals2, GL_STATIC_DRAW);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	checkError("initBuffer");
+	glBindBuffer(GL_ARRAY_BUFFER, 0); //9.
+	glBindVertexArray(0); //9.
 }
 
 
@@ -345,6 +381,7 @@ void init(void)
 	loadShaderProgram("../shaders/vertex_shader.vs", "../shaders/frag_shader.fs");
 
 	object.init();
+	object2.init();
 	initGeometry();
 	//object.print();
 
@@ -365,7 +402,7 @@ Why is the init inside display? Because some drivers require that the display wi
 display, ensuring that the window is visible;
 */
 
-void display_at(glm::mat4 translateMatrix)					//Displays same model at different translations
+void display_at(glm::mat4 translateMatrix,GLint v)					//Displays same model at different translations
 	
 	{
 
@@ -388,7 +425,7 @@ void display_at(glm::mat4 translateMatrix)					//Displays same model at differen
 
 	loc = glGetUniformLocation(programId, "mMatrix");
 
-	glBindVertexArray(vao);
+	glBindVertexArray(v);
 
 	
 	glm::mat4 rotateY = glm::rotate(glm::mat4(1.0), 45.0f, glm::vec3(0.0f, 1.0f, 0.0f)); 
@@ -429,6 +466,10 @@ void display_at(glm::mat4 translateMatrix)					//Displays same model at differen
 	const unsigned int *indices = object.getIndicesArray();
 	glDrawElements(GL_TRIANGLES, object.getNIndices(), GL_UNSIGNED_INT, indices); //type of geometry; number of indices; type of indices array, indices pointer
 
+	//TEST
+	const unsigned int *indices2 = object2.getIndicesArray();
+	glDrawElements(GL_TRIANGLES, object2.getNIndices(), GL_UNSIGNED_INT, indices2); //type of geometry; number of indices; type of indices array, indices pointer
+
 }
 
 void display(void)
@@ -443,8 +484,8 @@ void display(void)
 
 
 
-display_at(glm::translate(glm::mat4(1.0), glm::vec3(0.0f, 0.0f, 0.0f)));
-display_at(glm::translate(glm::mat4(10.0), glm::vec3(1.0f, 2.0f, 2.0f)));
+display_at(glm::translate(glm::mat4(1.0), glm::vec3(0.0f, 0.0f, 0.0f)),vao);
+display_at(glm::translate(glm::mat4(10.0), glm::vec3(1.0f, 2.0f, 2.0f)),vao2);
 
 
 	glActiveTexture(GL_TEXTURE0);
@@ -543,6 +584,7 @@ void mouse(int button, int state, int x, int y)
 {
 	if (button == GLUT_RIGHT_BUTTON)
 	{
+		/*
 		if (state == GLUT_DOWN)
 			cout << "Right button pressed"
 			<< endl;
@@ -550,6 +592,8 @@ void mouse(int button, int state, int x, int y)
 			cout << "Right button lifted "
 			<< "at (" << x << "," << y
 			<< ")" << endl;
+			
+			*/
 	}
 	else 
 		if (button == GLUT_LEFT_BUTTON)
@@ -563,8 +607,8 @@ void mouse(int button, int state, int x, int y)
 void motion(int x, int y)
 {
 	if (lbuttonDown){
-		cout << "Mouse dragged with left button at "
-			<< "(" << x << "," << y << ")" << endl;
+/*		cout << "Mouse dragged with left button at "
+			<< "(" << x << "," << y << ")" << endl;*/
 		if (mousex>x) angle += velocity/100;
 			else if (mousex<x) angle -= velocity/100;
 		if (mousey>y) cameraPos.y -= velocity/10;
@@ -576,9 +620,9 @@ void motion(int x, int y)
 }
 void motionPassive(int x, int y)
 {
-
+	/*
 	cout << "Mouse moved at "
-		<< "(" << x << "," << y << ")" << endl;
+		<< "(" << x << "," << y << ")" << endl;*/
 }
 
 /* 
