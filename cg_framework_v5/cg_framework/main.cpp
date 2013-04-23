@@ -9,6 +9,8 @@
 using namespace std;
 
 #include "objloader.h"
+
+bool increment=false;
 float line_vertex[]=
 {
     0,0, 3, 100
@@ -482,11 +484,25 @@ void display(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clears the display with the defined clear color
 	glUseProgram(programId);
 
+	//TEST
+	if (increment){
+		lightDir[0]=lightDir[0]+0.001;
+		}
 
+	if (lightDir[0]>=1.0)
+	{increment=false;}
+	
+	if (!increment)
+	{		
+		lightDir[0]=lightDir[0]-0.001;
+		
+	}
+	if (lightDir[0]<=-1.0)
+	{increment=true;}
 
 display_at(glm::translate(glm::mat4(1.0), glm::vec3(0.0f, 0.0f, 0.0f)),vao);
 display_at(glm::translate(glm::mat4(10.0), glm::vec3(1.0f, 2.0f, 2.0f)),vao2);
-
+//
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
