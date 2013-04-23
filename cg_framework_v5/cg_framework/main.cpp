@@ -365,20 +365,14 @@ Why is the init inside display? Because some drivers require that the display wi
 display, ensuring that the window is visible;
 */
 
-void display(void)
-{
-	if (!inited) {
-		init();
-		inited = true;
-	}
-
+void display_at(glm::mat4 translateMatrix)					//Displays same model at different translations
+	
+	{
 
 	GLfloat white[] = {1.0f, 1.0f, 1.0f, 1.0f};
 	GLfloat black[] = {0.0f, 0.0f, 0.0f, 1.0f};
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clears the display with the defined clear color
-	glUseProgram(programId);
-
+	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, baseTextureId);
 
@@ -396,7 +390,7 @@ void display(void)
 
 	glBindVertexArray(vao);
 
-	glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0), glm::vec3(0.0f, 0.0f, 0.0f));
+	
 	glm::mat4 rotateY = glm::rotate(glm::mat4(1.0), 45.0f, glm::vec3(0.0f, 1.0f, 0.0f)); 
 
 	glm::mat4 model = translateMatrix * rotateY;
@@ -435,6 +429,22 @@ void display(void)
 	const unsigned int *indices = object.getIndicesArray();
 	glDrawElements(GL_TRIANGLES, object.getNIndices(), GL_UNSIGNED_INT, indices); //type of geometry; number of indices; type of indices array, indices pointer
 
+}
+
+void display(void)
+{
+	if (!inited) {
+		init();
+		inited = true;
+	}
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clears the display with the defined clear color
+	glUseProgram(programId);
+
+
+
+display_at(glm::translate(glm::mat4(1.0), glm::vec3(0.0f, 0.0f, 0.0f)));
+display_at(glm::translate(glm::mat4(10.0), glm::vec3(1.0f, 2.0f, 2.0f)));
 
 
 	glActiveTexture(GL_TEXTURE0);
