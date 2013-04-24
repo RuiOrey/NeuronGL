@@ -10,12 +10,27 @@ using namespace std;
 
 #include "objloader.h"
 
+int vaoglobal=0;
 bool increment=false;
+bool incrementy=true;
 float line_vertex[]=
 {
     0,0, 3, 100
 };
 
+/* 
+Error checking function:
+
+It checks for error in the OpenGL pipeline;
+*/
+
+ void checkError(const char *functionName)
+{
+	GLenum error;
+	while (( error = glGetError() ) != GL_NO_ERROR) {
+		fprintf (stderr, "GL error 0x%X detected in %s\n", error, functionName);
+	}
+}
 
 /*
 Computer Graphics Course - FCUP (LCC, MCC)
@@ -38,17 +53,76 @@ vao: will hold the VAO identifier (usually one per object)
 geomId: will hold the VBO identifier (one per attribute: position, normal, etc.)
 */
 
-GLuint vao;
-GLuint geomId;
-GLuint normalsId;
-GLuint texUVId;
+int size=10;
+int total=2;
+
+GLuint *vao=(GLuint*) malloc (sizeof (GLuint) * size);
+GLuint *geomId=(GLuint*) malloc (sizeof (GLuint) * size);
+GLuint *normalsId=(GLuint*) malloc (sizeof (GLuint) * size);
+GLuint *texUVId=(GLuint*) malloc (sizeof (GLuint) * size);
+
 
 GLuint vao2;
 GLuint geomId2;
 GLuint normalsId2;
 GLuint texUVId2;
 
+/**********************************************************************
 
+		CLASS VAO
+
+**********************************************************************/
+
+class Vao {
+    GLuint vao;
+	GLuint geomId;
+	GLuint normalsId;
+	GLuint texUVId;
+	int vaoID;
+  public:
+    void initialize_vao (OBJLoader);
+    GLuint getvao () {return (vao);}
+	GLuint getgeom () {return (geomId);}	
+	GLuint getnormals () {return (normalsId);}
+	GLuint gettex () {return (texUVId);}
+	int getid () {return (vaoID);}
+};
+
+void Vao::initialize_vao (OBJLoader object_) {
+	vaoID=vaoglobal;
+	const float *vertices = object_.getVerticesArray();
+	const float *textureCoords = object_.getTextureCoordinatesArray();
+	const float *normals = object_.getNormalsArray();
+	glGenVertexArrays(1, &vao); //1.
+	glBindVertexArray(vao); //2.
+	glEnableVertexAttribArray(0); //3.
+	glGenBuffers(1, &geomId); //4.
+	glBindBuffer(GL_ARRAY_BUFFER, geomId); //5.
+	glBufferData(GL_ARRAY_BUFFER, object_.getNVertices() * 3 * sizeof(float), vertices, GL_STATIC_DRAW); //6. GL_ARRAY_BUFFER: the type of buffer; sizeof(vertices): the memory size; vertices: the pointer to data; GL_STATIC_DRAW: data will remain on the graphics card's memory and will not be changed
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0); //7. 0: the *ATTRIBUTE* number; 3: the number of coordinates; GL_FLOAT: the type of data; GL_FALSE: is the data normalized? (usually it isn't), 0: stride (forget for now); 0: data position (forget for now)
+
+	glEnableVertexAttribArray(1);
+	glGenBuffers(1, &texUVId);
+	glBindBuffer(GL_ARRAY_BUFFER, texUVId);
+	glBufferData(GL_ARRAY_BUFFER, object_.getNVertices() * 2 * sizeof(float), textureCoords, GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glEnableVertexAttribArray(2);
+	glGenBuffers(1, &normalsId);
+	glBindBuffer(GL_ARRAY_BUFFER, normalsId);
+	glBufferData(GL_ARRAY_BUFFER, object_.getNVertices() * 3 * sizeof(float), normals, GL_STATIC_DRAW);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	checkError("initBuffer");
+	glBindBuffer(GL_ARRAY_BUFFER, 0); //9.
+	glBindVertexArray(0); //9.
+}
+
+/**********************************************************************
+
+		END CLASS VAO!
+
+**********************************************************************/
 
 /*
 variables to hold the shaders related identifiers
@@ -90,30 +164,18 @@ float angle = -1.57079633f;
 const float velocity = 0.25f;
 
 
-GLfloat lightDir[] = {1.0f, 1.0f, 1.0};
-GLfloat lightIntensity[] = {0.9f, 0.9f, 0.9f, 1.0f};
+GLfloat lightDir[] = {1.0f, -0.5f, 2.0};
+GLfloat lightIntensity[] = {1.9f, 1.9f, 1.9f, 1.0f};
 
 GLfloat ambientComponent[] = {0.4f, 0.4f, 0.4f, 1.0f};
 GLfloat diffuseColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
 
-//OBJLoader object2("../models/haywagon/haywagon_tris.obj");
+OBJLoader object2("../models/haywagon/haywagon_tris.obj");
 OBJLoader object("../models/textured_cube.obj");
-OBJLoader object2("../models/cube.obj");
+//OBJLoader object2("../models/cube.obj");
 
-/* 
-Error checking function:
 
-It checks for error in the OpenGL pipeline;
-*/
-
-void checkError(const char *functionName)
-{
-	GLenum error;
-	while (( error = glGetError() ) != GL_NO_ERROR) {
-		fprintf (stderr, "GL error 0x%X detected in %s\n", error, functionName);
-	}
-}
 
 /*
 Prints the information regarding the OpenGL context
@@ -261,27 +323,29 @@ Geometry initialization routine.
 
 void initGeometry()
 {
+	Vao TesteVao;
+
 	const float *vertices = object.getVerticesArray();
 	const float *textureCoords = object.getTextureCoordinatesArray();
 	const float *normals = object.getNormalsArray();
 
-	glGenVertexArrays(1, &vao); //1.
-	glBindVertexArray(vao); //2.
+	glGenVertexArrays(1, &vao[0]); //1.
+	glBindVertexArray(vao[0]); //2.
 	glEnableVertexAttribArray(0); //3.
-	glGenBuffers(1, &geomId); //4.
-	glBindBuffer(GL_ARRAY_BUFFER, geomId); //5.
+	glGenBuffers(1, &geomId[0]); //4.
+	glBindBuffer(GL_ARRAY_BUFFER, geomId[0]); //5.
 	glBufferData(GL_ARRAY_BUFFER, object.getNVertices() * 3 * sizeof(float), vertices, GL_STATIC_DRAW); //6. GL_ARRAY_BUFFER: the type of buffer; sizeof(vertices): the memory size; vertices: the pointer to data; GL_STATIC_DRAW: data will remain on the graphics card's memory and will not be changed
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0); //7. 0: the *ATTRIBUTE* number; 3: the number of coordinates; GL_FLOAT: the type of data; GL_FALSE: is the data normalized? (usually it isn't), 0: stride (forget for now); 0: data position (forget for now)
 
 	glEnableVertexAttribArray(1);
-	glGenBuffers(1, &texUVId);
-	glBindBuffer(GL_ARRAY_BUFFER, texUVId);
+	glGenBuffers(1, &texUVId[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, texUVId[0]);
 	glBufferData(GL_ARRAY_BUFFER, object.getNVertices() * 2 * sizeof(float), textureCoords, GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glEnableVertexAttribArray(2);
-	glGenBuffers(1, &normalsId);
-	glBindBuffer(GL_ARRAY_BUFFER, normalsId);
+	glGenBuffers(1, &normalsId[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, normalsId[0]);
 	glBufferData(GL_ARRAY_BUFFER, object.getNVertices() * 3 * sizeof(float), normals, GL_STATIC_DRAW);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
@@ -391,6 +455,9 @@ void init(void)
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //Defines the clear color, i.e., the color used to wipe the display
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+	glEnable(GL_SAMPLE_SHADING);
+	
 	checkError("init");
 }
 
@@ -465,12 +532,21 @@ void display_at(glm::mat4 translateMatrix,GLint v)					//Displays same model at 
 	loc = glGetUniformLocation(programId, "diffuseColor");
 	glUniform4fv(loc, 1, diffuseColor);
 
+
+	/***********************************************************************************
+	
+	// DRAW ALL!!!!!!!
+
+	**********************************************************************************/
+
+
 	const unsigned int *indices = object.getIndicesArray();
 	glDrawElements(GL_TRIANGLES, object.getNIndices(), GL_UNSIGNED_INT, indices); //type of geometry; number of indices; type of indices array, indices pointer
 
 	//TEST
 	const unsigned int *indices2 = object2.getIndicesArray();
 	glDrawElements(GL_TRIANGLES, object2.getNIndices(), GL_UNSIGNED_INT, indices2); //type of geometry; number of indices; type of indices array, indices pointer
+
 
 }
 
@@ -500,8 +576,26 @@ void display(void)
 	if (lightDir[0]<=-1.0)
 	{increment=true;}
 
-display_at(glm::translate(glm::mat4(1.0), glm::vec3(0.0f, 0.0f, 0.0f)),vao);
+
+		if (incrementy){
+		lightDir[1]=lightDir[1]+0.001;
+		}
+
+	if (lightDir[1]>=1.0)
+	{incrementy=false;}
+	
+	if (!incrementy)
+	{		
+		lightDir[1]=lightDir[1]-0.001;
+		
+	}
+	if (lightDir[1]<=-1.0)
+	{incrementy=true;}
+
+display_at(glm::translate(glm::mat4(1.0), glm::vec3(0.0f, 0.0f, 0.0f)),vao[0]);
 display_at(glm::translate(glm::mat4(10.0), glm::vec3(1.0f, 2.0f, 2.0f)),vao2);
+display_at(glm::translate(glm::mat4(10.0), glm::vec3(0.0f, 1.0f, 2.0f)),vao2);
+display_at(glm::translate(glm::mat4(10.0), glm::vec3(1.0f, 2.0f, 3.0f)),vao2);
 //
 
 	glActiveTexture(GL_TEXTURE0);
