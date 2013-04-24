@@ -1,2 +1,4 @@
 NeuronGL
 ========
+
+OpenGL fun project
