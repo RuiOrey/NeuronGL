@@ -8,6 +8,7 @@ OBJLoader::OBJLoader (const char* file) :
 {
 }
 
+
 OBJLoader::~OBJLoader (void)
 {
 	if (NULL != mVertices) {
@@ -236,3 +237,4 @@ std::vector<std::string> OBJLoader::tokenize(const char* line, const char token,
 	}
 	return tokens;
 }
+

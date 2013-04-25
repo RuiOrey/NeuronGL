@@ -4,11 +4,34 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <FreeImage.h>
-
+#include <vector>
 #include <iostream>
-using namespace std;
+
 
 #include "objloader.h"
+
+/*****************************************************************************************************
+
+						Vector initializer template for initializing vectors 
+						with different values
+
+*****************************************************************************************************/
+template<typename T>
+struct initializer
+{
+   std::vector<T> items;
+   initializer(const T & item) { items.push_back(T(item)); }
+   initializer& operator()(const T & item) 
+   {
+      items.push_back(item);
+      return *this;
+   }
+   operator std::vector<T>&() { return items ; }
+};
+
+/****************************************************************************************************/
+
+using namespace std;
 
 int vaoglobal=0;
 bool increment=false;
@@ -171,9 +194,19 @@ GLfloat ambientComponent[] = {0.4f, 0.4f, 0.4f, 1.0f};
 GLfloat diffuseColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
 
-OBJLoader object2("../models/haywagon/haywagon_tris.obj");
-OBJLoader object("../models/textured_cube.obj");
-//OBJLoader object2("../models/cube.obj");
+/* objects[0]=new OBJLoader("../models/haywagon/haywagon_tris.obj"); 
+OBJLoader object1("../models/textured_cube.obj");
+OBJLoader object2("../models/cube.obj"); */
+
+/*****************************************************************************************************
+
+								Vector with all object models
+
+*****************************************************************************************************/
+
+vector <OBJLoader> objects(initializer<OBJLoader>(OBJLoader("../models/textured_cube.obj"))(OBJLoader("../models/cube.obj")));
+
+
 
 
 
@@ -325,28 +358,28 @@ void initGeometry()
 {
 	Vao TesteVao;
 
-	const float *vertices = object.getVerticesArray();
-	const float *textureCoords = object.getTextureCoordinatesArray();
-	const float *normals = object.getNormalsArray();
+	const float *vertices = objects[0].getVerticesArray();
+	const float *textureCoords = objects[0].getTextureCoordinatesArray();
+	const float *normals = objects[0].getNormalsArray();
 
 	glGenVertexArrays(1, &vao[0]); //1.
 	glBindVertexArray(vao[0]); //2.
 	glEnableVertexAttribArray(0); //3.
 	glGenBuffers(1, &geomId[0]); //4.
 	glBindBuffer(GL_ARRAY_BUFFER, geomId[0]); //5.
-	glBufferData(GL_ARRAY_BUFFER, object.getNVertices() * 3 * sizeof(float), vertices, GL_STATIC_DRAW); //6. GL_ARRAY_BUFFER: the type of buffer; sizeof(vertices): the memory size; vertices: the pointer to data; GL_STATIC_DRAW: data will remain on the graphics card's memory and will not be changed
+	glBufferData(GL_ARRAY_BUFFER, objects[0].getNVertices() * 3 * sizeof(float), vertices, GL_STATIC_DRAW); //6. GL_ARRAY_BUFFER: the type of buffer; sizeof(vertices): the memory size; vertices: the pointer to data; GL_STATIC_DRAW: data will remain on the graphics card's memory and will not be changed
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0); //7. 0: the *ATTRIBUTE* number; 3: the number of coordinates; GL_FLOAT: the type of data; GL_FALSE: is the data normalized? (usually it isn't), 0: stride (forget for now); 0: data position (forget for now)
 
 	glEnableVertexAttribArray(1);
 	glGenBuffers(1, &texUVId[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, texUVId[0]);
-	glBufferData(GL_ARRAY_BUFFER, object.getNVertices() * 2 * sizeof(float), textureCoords, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, objects[0].getNVertices() * 2 * sizeof(float), textureCoords, GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glEnableVertexAttribArray(2);
 	glGenBuffers(1, &normalsId[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, normalsId[0]);
-	glBufferData(GL_ARRAY_BUFFER, object.getNVertices() * 3 * sizeof(float), normals, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, objects[0].getNVertices() * 3 * sizeof(float), normals, GL_STATIC_DRAW);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	checkError("initBuffer");
@@ -356,28 +389,28 @@ void initGeometry()
 
 	// TEST 
 
-	const float *vertices2 = object2.getVerticesArray();
-	const float *textureCoords2 = object2.getTextureCoordinatesArray();
-	const float *normals2 = object2.getNormalsArray();
+	const float *vertices2 = objects[1].getVerticesArray();
+	const float *textureCoords2 = objects[1].getTextureCoordinatesArray();
+	const float *normals2 = objects[1].getNormalsArray();
 
 	glGenVertexArrays(1, &vao2); //1.
 	glBindVertexArray(vao2); //2.
 	glEnableVertexAttribArray(0); //3.
 	glGenBuffers(1, &geomId2); //4.
 	glBindBuffer(GL_ARRAY_BUFFER, geomId2); //5.
-	glBufferData(GL_ARRAY_BUFFER, object2.getNVertices() * 3 * sizeof(float), vertices2, GL_STATIC_DRAW); //6. GL_ARRAY_BUFFER: the type of buffer; sizeof(vertices): the memory size; vertices: the pointer to data; GL_STATIC_DRAW: data will remain on the graphics card's memory and will not be changed
+	glBufferData(GL_ARRAY_BUFFER, objects[1].getNVertices() * 3 * sizeof(float), vertices2, GL_STATIC_DRAW); //6. GL_ARRAY_BUFFER: the type of buffer; sizeof(vertices): the memory size; vertices: the pointer to data; GL_STATIC_DRAW: data will remain on the graphics card's memory and will not be changed
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0); //7. 0: the *ATTRIBUTE* number; 3: the number of coordinates; GL_FLOAT: the type of data; GL_FALSE: is the data normalized? (usually it isn't), 0: stride (forget for now); 0: data position (forget for now)
 
 	glEnableVertexAttribArray(1);
 	glGenBuffers(1, &texUVId2);
 	glBindBuffer(GL_ARRAY_BUFFER, texUVId2);
-	glBufferData(GL_ARRAY_BUFFER, object2.getNVertices() * 2 * sizeof(float), textureCoords2, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, objects[1].getNVertices() * 2 * sizeof(float), textureCoords2, GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glEnableVertexAttribArray(2);
 	glGenBuffers(1, &normalsId2);
 	glBindBuffer(GL_ARRAY_BUFFER, normalsId2);
-	glBufferData(GL_ARRAY_BUFFER, object2.getNVertices() * 3 * sizeof(float), normals2, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, objects[1].getNVertices() * 3 * sizeof(float), normals2, GL_STATIC_DRAW);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	checkError("initBuffer");
@@ -446,10 +479,10 @@ void init(void)
 
 	loadShaderProgram("../shaders/vertex_shader.vs", "../shaders/frag_shader.fs");
 
-	object.init();
-	object2.init();
+	objects[0].init();
+	objects[1].init();
 	initGeometry();
-	//object.print();
+	//objects[0].print();
 
 	baseTextureId = loadTexture("../models/textures/base.dds");
 
@@ -540,12 +573,12 @@ void display_at(glm::mat4 translateMatrix,GLint v)					//Displays same model at 
 	**********************************************************************************/
 
 
-	const unsigned int *indices = object.getIndicesArray();
-	glDrawElements(GL_TRIANGLES, object.getNIndices(), GL_UNSIGNED_INT, indices); //type of geometry; number of indices; type of indices array, indices pointer
+	const unsigned int *indices = objects[0].getIndicesArray();
+	glDrawElements(GL_TRIANGLES, objects[0].getNIndices(), GL_UNSIGNED_INT, indices); //type of geometry; number of indices; type of indices array, indices pointer
 
 	//TEST
-	const unsigned int *indices2 = object2.getIndicesArray();
-	glDrawElements(GL_TRIANGLES, object2.getNIndices(), GL_UNSIGNED_INT, indices2); //type of geometry; number of indices; type of indices array, indices pointer
+	const unsigned int *indices2 = objects[1].getIndicesArray();
+	glDrawElements(GL_TRIANGLES, objects[1].getNIndices(), GL_UNSIGNED_INT, indices2); //type of geometry; number of indices; type of indices array, indices pointer
 
 
 }
