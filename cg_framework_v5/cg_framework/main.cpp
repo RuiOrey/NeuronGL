@@ -33,13 +33,7 @@ struct initializer
 
 using namespace std;
 
-int vaoglobal=0;
-bool increment=false;
-bool incrementy=true;
-float line_vertex[]=
-{
-    0,0, 3, 100
-};
+
 
 /* 
 Error checking function:
@@ -76,13 +70,34 @@ vao: will hold the VAO identifier (usually one per object)
 geomId: will hold the VBO identifier (one per attribute: position, normal, etc.)
 */
 
+GLfloat translatex=0.0f;
+bool txup=true;
+GLfloat translatey=0.0f;
+bool tyup=true;
+GLfloat translatez=0.0f;
+bool tzup=true;
+
+int vaoglobal=0;
+bool increment=false;
+bool incrementy=true;
+float line_vertex[]=
+{
+    0,0, 3, 100
+};
+
+
 int size=10;
 int total=2;
+vector<int> elements(size);
+vector <glm::mat4> translationsM(size);
+vector <glm::mat4> rotationsY(size);
 
-GLuint *vao=(GLuint*) malloc (sizeof (GLuint) * size);
-GLuint *geomId=(GLuint*) malloc (sizeof (GLuint) * size);
-GLuint *normalsId=(GLuint*) malloc (sizeof (GLuint) * size);
-GLuint *texUVId=(GLuint*) malloc (sizeof (GLuint) * size);
+
+
+GLuint *vao=(GLuint*) malloc (sizeof (GLuint) * total);
+GLuint *geomId=(GLuint*) malloc (sizeof (GLuint) * total);
+GLuint *normalsId=(GLuint*) malloc (sizeof (GLuint) * total);
+GLuint *texUVId=(GLuint*) malloc (sizeof (GLuint) * total);
 
 
 GLuint vao2;
@@ -139,6 +154,7 @@ void Vao::initialize_vao (OBJLoader object_) {
 	checkError("initBuffer");
 	glBindBuffer(GL_ARRAY_BUFFER, 0); //9.
 	glBindVertexArray(0); //9.
+	vaoglobal++;
 }
 
 /**********************************************************************
@@ -204,7 +220,7 @@ OBJLoader object2("../models/cube.obj"); */
 
 *****************************************************************************************************/
 
-vector <OBJLoader> objects(initializer<OBJLoader>(OBJLoader("../models/textured_cube.obj"))(OBJLoader("../models/cube.obj")));
+vector <OBJLoader> objects(initializer<OBJLoader>(OBJLoader("../models/cube.obj"))(OBJLoader("../models/textured_cube.obj")));
 
 
 
@@ -356,39 +372,44 @@ Geometry initialization routine.
 
 void initGeometry()
 {
-	Vao TesteVao;
+	//Vao TesteVao;
 
-	const float *vertices = objects[0].getVerticesArray();
-	const float *textureCoords = objects[0].getTextureCoordinatesArray();
-	const float *normals = objects[0].getNormalsArray();
+	const float *vertices;
+	const float *textureCoords; 
+	const float *normals;
 
-	glGenVertexArrays(1, &vao[0]); //1.
-	glBindVertexArray(vao[0]); //2.
+	for (int i=0;i<total;i++){
+
+	vertices= objects[i].getVerticesArray();
+	textureCoords=objects[i].getTextureCoordinatesArray();
+	normals=objects[i].getNormalsArray();
+	glGenVertexArrays(1, &vao[i]); //1.
+	glBindVertexArray(vao[i]); //2.
 	glEnableVertexAttribArray(0); //3.
-	glGenBuffers(1, &geomId[0]); //4.
-	glBindBuffer(GL_ARRAY_BUFFER, geomId[0]); //5.
-	glBufferData(GL_ARRAY_BUFFER, objects[0].getNVertices() * 3 * sizeof(float), vertices, GL_STATIC_DRAW); //6. GL_ARRAY_BUFFER: the type of buffer; sizeof(vertices): the memory size; vertices: the pointer to data; GL_STATIC_DRAW: data will remain on the graphics card's memory and will not be changed
+	glGenBuffers(1, &geomId[i]); //4.
+	glBindBuffer(GL_ARRAY_BUFFER, geomId[i]); //5.
+	glBufferData(GL_ARRAY_BUFFER, objects[i].getNVertices() * 3 * sizeof(float), vertices, GL_STATIC_DRAW); //6. GL_ARRAY_BUFFER: the type of buffer; sizeof(vertices): the memory size; vertices: the pointer to data; GL_STATIC_DRAW: data will remain on the graphics card's memory and will not be changed
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0); //7. 0: the *ATTRIBUTE* number; 3: the number of coordinates; GL_FLOAT: the type of data; GL_FALSE: is the data normalized? (usually it isn't), 0: stride (forget for now); 0: data position (forget for now)
 
 	glEnableVertexAttribArray(1);
-	glGenBuffers(1, &texUVId[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, texUVId[0]);
-	glBufferData(GL_ARRAY_BUFFER, objects[0].getNVertices() * 2 * sizeof(float), textureCoords, GL_STATIC_DRAW);
+	glGenBuffers(1, &texUVId[i]);
+	glBindBuffer(GL_ARRAY_BUFFER, texUVId[i]);
+	glBufferData(GL_ARRAY_BUFFER, objects[i].getNVertices() * 2 * sizeof(float), textureCoords, GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glEnableVertexAttribArray(2);
-	glGenBuffers(1, &normalsId[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, normalsId[0]);
-	glBufferData(GL_ARRAY_BUFFER, objects[0].getNVertices() * 3 * sizeof(float), normals, GL_STATIC_DRAW);
+	glGenBuffers(1, &normalsId[i]);
+	glBindBuffer(GL_ARRAY_BUFFER, normalsId[i]);
+	glBufferData(GL_ARRAY_BUFFER, objects[i].getNVertices() * 3 * sizeof(float), normals, GL_STATIC_DRAW);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	checkError("initBuffer");
 	glBindBuffer(GL_ARRAY_BUFFER, 0); //9.
 	glBindVertexArray(0); //9.
-
+	}
 
 	// TEST 
-
+	/*
 	const float *vertices2 = objects[1].getVerticesArray();
 	const float *textureCoords2 = objects[1].getTextureCoordinatesArray();
 	const float *normals2 = objects[1].getNormalsArray();
@@ -415,7 +436,7 @@ void initGeometry()
 
 	checkError("initBuffer");
 	glBindBuffer(GL_ARRAY_BUFFER, 0); //9.
-	glBindVertexArray(0); //9.
+	glBindVertexArray(0); //9.*/
 }
 
 
@@ -454,7 +475,41 @@ All initialization procedures should be performed here.
 
 void init(void) 
 {
+	
 
+	/******************************************************************
+	Delegates which vao/model should be used by each object on-screen
+	*******************************************************************/
+	GLfloat a=0.0f;
+	if (translatex>=2){
+		txup=false;}
+	if (translatex<=-2){
+		txup=true;}
+	
+	if (txup){
+		translatex++;
+	}
+	
+	if (!txup){
+		translatex--;
+		}
+	
+	GLfloat b=0.0f;
+	for(int i=0;i<size;i++)
+		{
+			if (i % 2==0){ 
+				elements[i]=0;
+				translationsM[i] = glm::translate(glm::mat4(1.0), glm::vec3(translatex, b, 0.0f));
+							}
+			else {
+				elements[i]=1;
+				translationsM[i] = glm::translate(glm::mat4(1.0), glm::vec3(b, translatex, 1.0f));}
+			rotationsY[i] = glm::rotate(glm::mat4(1.0), 45.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		}
+
+	
+	
 	/*
 	GLEW initialization.
 	activate GLEW experimental features to have access to the most recent OpenGL, and then call glewInit.
@@ -502,12 +557,14 @@ display function;
 This function is called to paint the display. This is where the drawing functions should be placed.
 Why is the init inside display? Because some drivers require that the display window to be visible to work correctly; therefore, the initialization is done once, but on the first call to 
 display, ensuring that the window is visible;
+
+transform the next funtion so argument is index of element (with it can get matrixes and vao)
 */
 
 void display_at(glm::mat4 translateMatrix,GLint v)					//Displays same model at different translations
 	
 	{
-
+	
 	GLfloat white[] = {1.0f, 1.0f, 1.0f, 1.0f};
 	GLfloat black[] = {0.0f, 0.0f, 0.0f, 1.0f};
 
@@ -528,6 +585,9 @@ void display_at(glm::mat4 translateMatrix,GLint v)					//Displays same model at 
 	loc = glGetUniformLocation(programId, "mMatrix");
 
 	glBindVertexArray(v);
+
+
+
 
 	
 	glm::mat4 rotateY = glm::rotate(glm::mat4(1.0), 45.0f, glm::vec3(0.0f, 1.0f, 0.0f)); 
@@ -583,11 +643,119 @@ void display_at(glm::mat4 translateMatrix,GLint v)					//Displays same model at 
 
 }
 
+void display_at2(int indexmatrix,int indexelem)					//Displays same model at different translations
+	
+	{
+	glm::mat4 translateMatrix=translationsM[indexmatrix];
+	
+	GLint vaot=vao[indexelem];
+	
+	GLfloat white[] = {1.0f, 1.0f, 1.0f, 1.0f};
+	GLfloat black[] = {0.0f, 0.0f, 0.0f, 1.0f};
+
+	
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, baseTextureId);
+
+	GLuint loc = glGetUniformLocation(programId, "tex");
+	glUniform1i(loc, 0); 
+
+
+	loc = glGetUniformLocation(programId, "pMatrix");
+	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *)&perspectiveMatrix[0]);
+
+	loc = glGetUniformLocation(programId, "vMatrix");
+	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *)&cameraMatrix[0]);
+
+	loc = glGetUniformLocation(programId, "mMatrix");
+
+	glBindVertexArray(vaot);
+
+
+	
+	glm::mat4 rotateY = glm::rotate(glm::mat4(1.0), 45.0f, glm::vec3(0.0f, 1.0f, 0.0f)); 
+
+	glm::mat4 model = translateMatrix * rotateY;
+	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *)&model[0]);
+
+
+	glm::mat4 cameraModelMatrix = cameraMatrix * model;
+
+	loc = glGetUniformLocation(programId, "nMatrix");
+	glm::mat3 normalMatrix = glm::mat3(cameraMatrix);
+	glUniformMatrix3fv(loc, 1, GL_FALSE, (GLfloat *)&normalMatrix[0]); 
+	/*
+	if using non-uniform scaling:
+
+	glm::mat4 cameraModelMatrix = cameraMatrix * model;
+	glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(cameraModelMatrix)));
+	*/
+
+
+	loc = glGetUniformLocation(programId, "lightDir");
+	glm::vec4 transformedLightDir = cameraMatrix * glm::vec4(lightDir[0], lightDir[1], lightDir[2], 0.0f);
+	glUniform3fv(loc, 1, (GLfloat *)&transformedLightDir[0]);
+		
+
+	loc = glGetUniformLocation(programId, "lightIntensity");
+	glUniform4fv(loc, 1, lightIntensity);
+
+
+	loc = glGetUniformLocation(programId, "ambientIntensity");
+	glUniform4fv(loc, 1, ambientComponent);
+
+
+	loc = glGetUniformLocation(programId, "diffuseColor");
+	glUniform4fv(loc, 1, diffuseColor);
+
+
+	/***********************************************************************************
+	
+	// DRAW ALL!!!!!!!
+
+	**********************************************************************************/
+
+
+	const unsigned int *indices = objects[indexelem].getIndicesArray();
+	glDrawElements(GL_TRIANGLES, objects[indexelem].getNIndices(), GL_UNSIGNED_INT, indices); //type of geometry; number of indices; type of indices array, indices pointer
+
+	//TEST
+	
+
+}
+
 void display(void)
 {
 	if (!inited) {
 		init();
 		inited = true;
+	}
+	else{
+		// ROTATES ALL FRAMES
+		if (translatex>=10.0f){
+		txup=false;}
+	if (translatex<=-10.0f){
+		txup=true;}
+	if (txup){
+		translatex=translatex+0.01f;
+	}
+	else{
+		translatex=translatex-0.01f;		}
+	
+	GLfloat b=0.0f;
+	for(int i=0;i<size;i++)
+		{
+			if (i % 2==0){ 
+				elements[i]=0;
+				translationsM[i] = glm::translate(glm::mat4(1.0), glm::vec3(translatex, b--, 0.0f));
+							}
+			else {
+				elements[i]=1;
+				translationsM[i] = glm::translate(glm::mat4(1.0), glm::vec3(b--, translatex, 1.0f));}
+			rotationsY[i] = glm::rotate(glm::mat4(1.0), 45.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		} 
+	// END
 	}
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clears the display with the defined clear color
@@ -595,7 +763,7 @@ void display(void)
 
 	//TEST
 	if (increment){
-		lightDir[0]=lightDir[0]+0.001;
+		lightDir[0]=lightDir[0]+0.001f;
 		}
 
 	if (lightDir[0]>=1.0)
@@ -603,7 +771,7 @@ void display(void)
 	
 	if (!increment)
 	{		
-		lightDir[0]=lightDir[0]-0.001;
+		lightDir[0]=lightDir[0]-0.001f;
 		
 	}
 	if (lightDir[0]<=-1.0)
@@ -611,7 +779,7 @@ void display(void)
 
 
 		if (incrementy){
-		lightDir[1]=lightDir[1]+0.001;
+		lightDir[1]=lightDir[1]+0.001f;
 		}
 
 	if (lightDir[1]>=1.0)
@@ -619,16 +787,31 @@ void display(void)
 	
 	if (!incrementy)
 	{		
-		lightDir[1]=lightDir[1]-0.001;
+		lightDir[1]=lightDir[1]-0.001f;
 		
 	}
 	if (lightDir[1]<=-1.0)
 	{incrementy=true;}
 
+
+	/*****************************************************************************************************************************************
+	ATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HERE
+	ATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HEREATTENTION HE
+	display_at receives a index that indicates the vao index of the object and indexes and prints his object
+	need and object or struct with two ids
+	1- for know which object and vao
+	2- for know
+
+	array of ints - index= id of matrixes of translation, etc - value :id of vao and object
+	******************************************************************************************************************************************/
+
+	/*
 display_at(glm::translate(glm::mat4(1.0), glm::vec3(0.0f, 0.0f, 0.0f)),vao[0]);
 display_at(glm::translate(glm::mat4(10.0), glm::vec3(1.0f, 2.0f, 2.0f)),vao2);
 display_at(glm::translate(glm::mat4(10.0), glm::vec3(0.0f, 1.0f, 2.0f)),vao2);
-display_at(glm::translate(glm::mat4(10.0), glm::vec3(1.0f, 2.0f, 3.0f)),vao2);
+display_at(glm::translate(glm::mat4(10.0), glm::vec3(1.0f, 2.0f, 3.0f)),vao2); */
+	for (int i=0;i<size;i++)
+	display_at2(i,elements[i]);
 //
 
 	glActiveTexture(GL_TEXTURE0);
